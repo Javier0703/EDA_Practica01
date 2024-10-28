@@ -26,6 +26,7 @@ public class Simulador {
          * @param lx Valor máximo posición x
          * @param ly Valor máximo posición y
          */
+        
         public void SetPos(float xn, float yn, int lx, int ly) {
             x = xn; y = yn;
             // El sobrepasar los límites se trata como una colisión con las
@@ -55,10 +56,14 @@ public class Simulador {
     public int lx;           // Longitud del tanque
     public int ly;           // Altura del tanque
     public double tpo;       // Tiempo de la última ejecución (milisegundos)
+    
     // Interacción del usuario
     public float xu, yu;     // Posición del ratón (xu < 0 si no se aplica)
     public float ru;         // Radio fuerza usuario
     public float ku;         // Intensidad fuerza usuario
+    
+    //MODIFICACION : INICIALIZACION DEL CONTADOR
+    private long contadorOperaciones; //Contador de operaciones Artim�tricas
     
     /**
      * Crea un nuevo simulador con el número de gotículas indicado.
@@ -67,6 +72,7 @@ public class Simulador {
      */
     public Simulador(int n) {
         this.n = n;
+        contadorOperaciones = 0; //Inicializamos el contador en 0
         // Calculamos las dimensiones adecuadas del tanque
         lx = (int) (2*Math.ceil(Math.sqrt(n/D0)));
         ly = (9*lx)/16;
