@@ -10,6 +10,7 @@ public class Simulador {
      * sobre la gotícula, por eso no se definen getters ni setters, salvo en
      * el caso especial de la posición.
      */
+	
     public class Goticula {
 
         public float x, y;     // Posición
@@ -17,6 +18,8 @@ public class Simulador {
         public float vx, vy;   // Velocidad
         public float fpx, fpy; // Fuerza debida al diferencial de presión
         public float fux, fuy; // Fuerza debida a la interacción del usuario
+        public float operacionesGoticula = 0; //Operaciones que hace cada porpia goticula
+        
 
         /**
          * Actualiza la posición de una gotícula. Se asegura de que la posición
@@ -31,10 +34,10 @@ public class Simulador {
             x = xn; y = yn;
             // El sobrepasar los límites se trata como una colisión con las
             // paredes, por eso se cambia de signo la velocidad
-            if (x < 0) { x = 0; vx = -vx; }
-            if (y < 0) { y = 0; vy = -vy; }
-            if (x >= lx) { x = lx-0.00001f; vx = -vx; }
-            if (y >= ly) { y = ly-0.00001f; vy = -vy; }
+            if (x < 0) { x = 0; vx = -vx; this.operacionesGoticula++;}
+            if (y < 0) { y = 0; vy = -vy; this.operacionesGoticula++;}
+            if (x >= lx) { x = lx-0.00001f; vx = -vx; this.operacionesGoticula+=2;}
+            if (y >= ly) { y = ly-0.00001f; vy = -vy; this.operacionesGoticula+=2;}
         }
 
         @Override
@@ -77,10 +80,13 @@ public class Simulador {
         lx = (int) (2*Math.ceil(Math.sqrt(n/D0)));
         ly = (9*lx)/16;
         xu = -1;   // No hay interacción usuario
-        ru = ly/6f;
+        ru = ly/6f; //1 operacion
+        this.contadorOperaciones++;
         // Creamos y colocamos las gotículas
         gotas = new Goticula[n];
-        for(int i = 0; i < n; i++) { gotas[i] = new Goticula(); }
+        for(int i = 0; i < n; i++) {
+        	gotas[i] = new Goticula(); 
+        }
         ColocaGoticulasEnCuadrado();
     }
     
@@ -88,12 +94,14 @@ public class Simulador {
      * Coloca las gotículas segun un cuadrado con la densidad objetivo
      */
     private void ColocaGoticulasEnCuadrado() {
-        float sep = (float) Math.sqrt(1/D0);
+        float sep = (float) Math.sqrt(1/D0); //2 operaciones
+        this.contadorOperaciones +=2;
         int nfil = (int) Math.floor(Math.sqrt(n));
         int ncol = (n-1)/nfil + 1;
         for(int i = 0; i < n; i++) {
-            float x = sep*(i % ncol + 1);
-            float y = sep*(i / ncol + 1);
+            float x = sep*(i % ncol + 1); //1 operacion
+            float y = sep*(i / ncol + 1); //1 operacion
+            this.contadorOperaciones +=2;
             gotas[i].SetPos(x, y, lx, ly);
         }
     }
@@ -107,7 +115,7 @@ public class Simulador {
      * @return  La distancia euclidea entre los puntos
      */
     private static float Dist(float x1, float y1, float x2, float y2) {
-        return (float) Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+        return (float) Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)); //8 Operaciones
     }
     
     /**
@@ -116,7 +124,7 @@ public class Simulador {
      * @return  El valor de ponderación a esa distancia
      */
     private static float Kernel(float d) {
-        return d > 1 ? 0 : KK*(1-d)*(1-d);
+        return d > 1 ? 0 : KK*(1-d)*(1-d); //d<=1 --> 4 operaciones
     }
     
     /**
@@ -125,7 +133,7 @@ public class Simulador {
      * @return  La derivada de la función a esa distancia
      */
     private static float DKernel(float d) {
-        return d > 1 ? 0 : KK*2*(d-1);
+        return d > 1 ? 0 : KK*2*(d-1); //d<=1 --> 3 operaciones
     }
     
     /**
@@ -143,10 +151,13 @@ public class Simulador {
         for(Goticula g: gotas) {
             // Distancia de la cada gota al punto (x,y)
             float d = Dist(x, y, g.x, g.y);
+            this.contadorOperaciones +=8; //Llamada a Dist = 8 operaciones
             // Sumamos la masa (=1) de la gota g ponderada por el Kernel
             // Nota: Fijaros que si la distancia de la gota es mayor que 1 su
             // contribución será nula (el kernel devuelve 0 para d > 1)
+            if(d<=1)this.contadorOperaciones+=4;
             densidad += Kernel(d);
+            this.contadorOperaciones++;
         }
         return densidad;
     }
@@ -169,14 +180,18 @@ public class Simulador {
             if(gi == gj) { continue; }
             // Distancia entre goticulas (atención: se usa la posición salvada)
             float dist = Dist(gi.xa, gi.ya, gj.xa, gj.ya);
+            this.contadorOperaciones +=8;
             // Si las partículas estan muy juntas puede dar problemas numéricos
             if(dist < 0.0001f) { continue; }
             // Diferencial de densidad en la otra partícula
-            float dj = CalcDensidad(gj.x, gj.y);           
-            float fr = KP*0.5f*((di-D0)+(dj-D0))*DKernel(dist)/dj;
+            float dj = CalcDensidad(gj.x, gj.y);   
+            if(dist<=1)this.contadorOperaciones+=3;
+            float fr = KP*0.5f*((di-D0)+(dj-D0))*DKernel(dist)/dj; // 7 Operaciones
             // Acumulamos la fuerza
-            fx += fr*(gj.xa-gi.xa)/dist;
-            fy += fr*(gj.ya-gi.ya)/dist;
+            fx += fr*(gj.xa-gi.xa)/dist; //3 operaciones
+            fy += fr*(gj.ya-gi.ya)/dist; //3 operaciones
+            this.contadorOperaciones += 13;
+            
         }        
         return new float[] { fx/di, fy/di };
     }
@@ -191,15 +206,18 @@ public class Simulador {
         float fx = 0, fy = 0;
         if(xu >= 0) {
             // Distancia entre la goticula y el punto marcado por el usuario
-            float dist = Dist(xu, yu, g.x, g.y);
+            float dist = Dist(xu, yu, g.x, g.y); //8 operaciones
+            this.contadorOperaciones +=8;
             float dx = 0, dy = 0; // Dirección al punto, normalizada
             if(dist > 0.0001f) { 
-                dx = (xu - g.x)/dist;
-                dy = (yu - g.y)/dist;                
+                dx = (xu - g.x)/dist; //2 operaciones
+                dy = (yu - g.y)/dist; //2 operaciones 
+                this.contadorOperaciones +=4;
             }
-            float fr = 1 - dist/ru;
-            fx = fr*(ku*dx - g.vx);
-            fy = fr*(ku*dy - g.vy);
+            float fr = 1 - dist/ru; //1 operacion
+            fx = fr*(ku*dx - g.vx); //3 operaciones
+            fy = fr*(ku*dy - g.vy); //3 operaciones
+            this.contadorOperaciones +=7;
         }
         return new float[] { fx, fy };
     }
@@ -211,6 +229,7 @@ public class Simulador {
      * Se utiliza el método de Euler con algún que otro truco para mejorar la
      * estabilidad de la simulación.
      */
+    
     public final void PasoSimulacion() {
         long t0 = System.nanoTime();
         // Aplicamos la fuerza de la gravedad y predecimos la nueva posición
@@ -218,9 +237,11 @@ public class Simulador {
             // Salvamos la posición anterior
             g.xa = g.x; g.ya = g.y;
             // Aplicamos la gravedad
-            g.vx += DT*GX; g.vy += DT*GY;
+            g.vx += DT*GX; g.vy += DT*GY; //4 operaciones
+            this.contadorOperaciones += 4;
             // Actualizamos la posición
             g.SetPos(g.x + DT*g.vx, g.y + DT*g.vy, lx, ly);
+            
         }
         // Calculamos la fuerza debida a los diferenciales de presión y
         // a la interacción del usuario
@@ -232,10 +253,12 @@ public class Simulador {
         }
         // Aplicamos las fuerzas calculadas y almacenadas en el bucle anterior
         for(Goticula g: gotas) {
-            g.vx += DT*(g.fpx + g.fux);
-            g.vy += DT*(g.fpy + g.fuy);
+            g.vx += DT*(g.fpx + g.fux); //3 operaciones
+            g.vy += DT*(g.fpy + g.fuy); //3 operaciones
+            this.contadorOperaciones +=6;
             // Actualizamos la posición (usamos la posición original)
             g.SetPos(g.xa + DT*g.vx, g.ya + DT*g.vy, lx, ly);
+            
         }
         tpo = 1e-6*(System.nanoTime()-t0);
     }
@@ -256,4 +279,19 @@ public class Simulador {
     public final void NoClick() {
         xu = -1;
     }
+    
+    /**
+     * Metodo que devuelve el numro de operaciones aritm�tricas de tipo float y las que realiza cada propia goticula
+     * @return numero de aritmetricas
+     */
+	public long obtenerContadorOperaciones() {
+		long operacionesGoticulasTotal = 0;
+		for (int i = 0; i < this.gotas.length; i++) {
+			operacionesGoticulasTotal += this.gotas[i].operacionesGoticula;
+		}
+		return this.contadorOperaciones + operacionesGoticulasTotal;
+		
+	}   
+    
+    
 }

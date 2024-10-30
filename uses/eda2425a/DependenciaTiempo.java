@@ -12,8 +12,8 @@ package eda2425a;
 public class DependenciaTiempo {
 
 	public static void main(String[] args) {
-        int[] tamanosGoticula = {150, 300, 450, 600, 750, 900, 1050};  
-        int repeticiones = 10;  
+        int[] tamanosGoticula = {3000, 4000, 5000, 6000, 7000, 8000, 8500, 9000, 9500, 10000};  
+        int repeticiones = 1;
         System.out.println("Gotículas - Tiempo Promedio (ms)");
         comprobacionGoticulas(tamanosGoticula, repeticiones);   
     }

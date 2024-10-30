@@ -11,9 +11,10 @@ package eda2425a;
 
 public class DependenciaOperaciones {
     public static void main(String[] args) {
-        int[] tamaniosGoticulas = {100, 200, 500, 1000, 2000, 5000};
-        int repeticiones = 10;
+        int[] tamaniosGoticulas = {2000, 3000, 4000, 5000, 6000, 6500, 7000, 7500, 8000, 8500};
+        int repeticiones = 1;
         System.out.println("Número de gotículas - Operaciones promedio");
+        comprobarGoticulas(tamaniosGoticulas,repeticiones);
     }
     
     /**
